@@ -206,6 +206,7 @@ func (h *handler) Register(funcs ...ServableFunction) {
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.Logger.Debug("received http request", "method", r.Method)
+	SetBasicResponseHeaders(w)
 
 	switch r.Method {
 	case http.MethodPost:
@@ -239,7 +240,7 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) error {
 		URL:        fmt.Sprintf("%s://%s%s", scheme, host, path),
 		V:          "1",
 		DeployType: "ping",
-		SDK:        "go:v0.0.1",
+		SDK:        HeaderValueSDK,
 		AppName:    h.appName,
 		Headers: sdk.Headers{
 			Env:      h.GetEnv(),
@@ -340,10 +341,11 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("error creating signing key: %w", err)
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", string(key)))
+	req.Header.Add(HeaderKeyAuthorization, fmt.Sprintf("Bearer %s", string(key)))
 	if h.GetEnv() != "" {
-		req.Header.Add("X-Inngest-Env", h.GetEnv())
+		req.Header.Add(HeaderKeyEnv, h.GetEnv())
 	}
+	SetBasicRequestHeaders(req)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -381,7 +383,7 @@ func (h *handler) invoke(w http.ResponseWriter, r *http.Request) error {
 	defer r.Body.Close()
 
 	if !IsDev() {
-		if sig = r.Header.Get("X-Inngest-Signature"); sig == "" {
+		if sig = r.Header.Get(HeaderKeySignature); sig == "" {
 			return publicerr.Error{
 				Message: "unauthorized",
 				Status:  401,
@@ -499,11 +501,11 @@ func (h *handler) invoke(w http.ResponseWriter, r *http.Request) error {
 		l.Error("error calling function", "error", err)
 
 		if isNoRetryError(err) {
-			w.Header().Add("x-inngest-no-retry", "true")
+			w.Header().Add(HeaderKeyNoRetry, "true")
 		}
 
 		if at := getRetryAtTime(err); at != nil {
-			w.Header().Add("retry-after", at.Format(time.RFC3339))
+			w.Header().Add(HeaderKeyRetryAfter, at.Format(time.RFC3339))
 		}
 
 		return publicerr.Error{

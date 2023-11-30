@@ -19,10 +19,6 @@
 
 # Inngest Go SDK
 
-> 🚧 Currently in beta! Used carefully in production, though there may be breaking API changes pre 1.0.
-
-<br />
-
 Inngest's Go SDK allows you to create event-driven, durable workflows in your existing API — without new infrastructure.
 
 It's useful if you want to build reliable software without worrying about queues, events, subscribers, workers, or other

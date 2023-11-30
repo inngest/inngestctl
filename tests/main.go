@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -157,6 +158,16 @@ func run(t *testing.T, test *Test) {
 			// do nothing, success
 		case <-time.After(time.Second):
 			require.Fail(t, "unexpected sdk response")
+		}
+
+		// Forward Inngest headers
+		for k, v := range sdkResponse.Header {
+			if !strings.HasPrefix(k, "X-Inngest") {
+				continue
+			}
+			for _, v := range v {
+				w.Header().Set(k, v)
+			}
 		}
 
 		// Forward the response from the SDK to the executor.

@@ -35,6 +35,9 @@ func WaitForEvent[T any](ctx context.Context, id string, opts WaitForEventOpts) 
 	if opts.If != nil {
 		args["if"] = *opts.If
 	}
+	if opts.Name == "" {
+		opts.Name = id
+	}
 
 	op := mgr.NewOp(enums.OpcodeWaitForEvent, id, args)
 	if val, ok := mgr.Step(op); ok {

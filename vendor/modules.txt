@@ -494,7 +494,7 @@ github.com/hashicorp/terraform/tfdiags
 # github.com/inconshreveable/mousetrap v1.0.0
 ## explicit
 github.com/inconshreveable/mousetrap
-# github.com/inngest/inngestgo v0.5.1
+# github.com/inngest/inngestgo v0.5.2
 ## explicit; go 1.21
 github.com/inngest/inngestgo
 github.com/inngest/inngestgo/internal/sdkrequest

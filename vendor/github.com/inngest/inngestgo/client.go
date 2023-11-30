@@ -143,10 +143,10 @@ func (a apiClient) SendMany(ctx context.Context, e []any) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating event request: %w", err)
 	}
-	req.Header.Set("content-type", "application/json")
+	SetBasicRequestHeaders(req)
 
 	if a.GetEnv() != "" {
-		req.Header.Add("X-Inngest-Env", a.GetEnv())
+		req.Header.Add(HeaderKeyEnv, a.GetEnv())
 	}
 
 	resp, err := a.HTTPClient.Post(url, "application/json", bytes.NewBuffer(byt))
