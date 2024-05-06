@@ -93,6 +93,7 @@ export default function AddAppModal({ isOpen, onClose }: AddAppModalProps) {
               Please enter a valid URL
             </p>
           )}
+          {/* TODO(cdzombak): check for /ingest */}
         </form>
       </Modal.Body>
       <Modal.Footer className="flex justify-end gap-2">

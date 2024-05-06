@@ -184,6 +184,7 @@ export default function AppCard({ app }: { app: App }) {
                       Please enter a valid URL
                     </p>
                   )}
+                  {/* TODO(cdzombak): check for /ingest */}
                 </div>
               </form>
               <div className="mb-4 grid grid-cols-3 border-y border-slate-700/30">
