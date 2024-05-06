@@ -7,8 +7,11 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/inngest/inngest/pkg/logger"
 )
 
 var (
@@ -77,6 +80,19 @@ func Autodiscover(ctx context.Context) map[string]struct{} {
 					// only add if the URL doesn't exist;  this ensures
 					// we don't overwrite errors.
 					urls[url] = struct{}{}
+				}
+			}
+		}
+		if len(urls) == 0 {
+			// check to see if the (typo) "ingest" instead of "inngest" is used
+			for _, path := range Paths {
+				typoedPath := strings.ReplaceAll(path, "/inngest", "/ingest")
+				url := fmt.Sprintf("http://127.0.0.1:%d%s", port, typoedPath)
+				if err := checkURL(ctx, url); err == nil {
+					logger.From(ctx).Warn().Str("url", url).Msg(fmt.Sprintf(
+						"oops! an Inngest SDK is running at 'localhost:%d%s', "+
+							"but 'inngest' is spelled wrong -- the correct path is '%s'",
+						port, typoedPath, path))
 				}
 			}
 		}

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -70,6 +71,14 @@ func doDev(cmd *cobra.Command, args []string) {
 	}
 
 	urls, _ := cmd.Flags().GetStringSlice("sdk-url")
+
+	for _, url := range urls {
+		if strings.HasSuffix(strings.ToLower(url), "/ingest") {
+			fmt.Println(fmt.Sprintf("oops! you're using an Inngest endpoint at '%s', "+
+				"but 'inngest' is spelled wrong -- please spell it '/inngest'",
+				url))
+		}
+	}
 
 	// Run auto-discovery unless we've explicitly disabled it.
 	noDiscovery, _ := cmd.Flags().GetBool("no-discovery")

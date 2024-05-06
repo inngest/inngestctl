@@ -151,6 +151,13 @@ export default function AppCard({ app }: { app: App }) {
                   )}
                 </>
               )}
+              {app.url && app.url.endsWith('/ingest') && (
+                <p className="pb-4 font-medium text-rose-400">
+                  You're using an Inngest endpoint at <code>{app.url}</code>, but{' '}
+                  <code>inngest</code>
+                  is spelled wrong -- please spell it <code>/inngest</code>.
+                </p>
+              )}
               <form className="block pb-4 xl:flex xl:items-center xl:justify-between">
                 <label htmlFor="editAppUrl" className="text-sm font-semibold text-white">
                   App URL
