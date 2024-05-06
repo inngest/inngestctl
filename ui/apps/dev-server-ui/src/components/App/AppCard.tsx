@@ -147,7 +147,7 @@ export default function AppCard({ app }: { app: App }) {
                     <span className="text-white">multiple ports</span> by default.
                   </p>
                   {app.error && (
-                    <p className="pb-4 font-medium text-rose-400	">Error: {app.error}</p>
+                    <p className="pb-4 font-medium text-rose-400">Error: {app.error}</p>
                   )}
                 </>
               )}
