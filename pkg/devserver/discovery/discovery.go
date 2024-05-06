@@ -75,7 +75,7 @@ func Autodiscover(ctx context.Context) map[string]struct{} {
 			if err := checkURL(ctx, url); err == nil {
 				if _, ok := urls[url]; !ok {
 					// only add if the URL doesn't exist;  this ensures
-					// we don't overwrite eror5rs.
+					// we don't overwrite errors.
 					urls[url] = struct{}{}
 				}
 			}
