@@ -2411,6 +2411,14 @@ func (e *executor) newExpressionEvaluator(ctx context.Context, expr string) (exp
 	return expressions.NewExpressionEvaluator(ctx, expr)
 }
 
+// BatchExecOpts can be used to set state and options that are relevant only when scheduling a batch
+// to be worked on *imminently* (i.e. ~now, not at some future time).
+type BatchExecOpts struct {
+	FunctionPausedAt *time.Time
+}
+
+type BatchExecOpt func(opts *BatchExecOpts)
+
 // extractTraceCtx extracts the trace context from the given item, if it exists.
 // If it doesn't it falls back to extracting the trace for the run overall.
 // If neither exist or they are invalid, it returns the original context.
@@ -2439,13 +2447,9 @@ func (e *executor) extractTraceCtx(ctx context.Context, id state.Identifier, ite
 	return ctx
 }
 
-func (e *executor) AppendAndScheduleBatch(ctx context.Context, fn inngest.Function, bi batch.BatchItem) error {
-	return e.AppendAndScheduleBatchWithOpts(ctx, fn, bi, execution.BatchExecOpts{})
-}
-
 // AppendAndScheduleBatchWithOpts appends a new batch item. If a new batch is created, it will be scheduled to run
 // after the batch timeout. If the item finalizes the batch, a function run is immediately scheduled.
-func (e *executor) AppendAndScheduleBatchWithOpts(ctx context.Context, fn inngest.Function, bi batch.BatchItem, opts execution.BatchExecOpts) error {
+func (e *executor) AppendAndScheduleBatch(ctx context.Context, fn inngest.Function, bi batch.BatchItem, opts ...BatchExecOpt) error {
 	result, err := e.batcher.Append(ctx, bi, fn)
 	if err != nil {
 		return err
@@ -2477,14 +2481,12 @@ func (e *executor) AppendAndScheduleBatchWithOpts(ctx context.Context, fn innges
 	case enums.BatchFull:
 		// start execution immediately
 		batchID := ulid.MustParse(result.BatchID)
-		if err := e.RetrieveAndScheduleBatchWithOpts(ctx, fn, batch.ScheduleBatchPayload{
+		if err := e.RetrieveAndScheduleBatch(ctx, fn, batch.ScheduleBatchPayload{
 			BatchID:     batchID,
 			AppID:       bi.AppID,
 			WorkspaceID: bi.WorkspaceID,
 			AccountID:   bi.AccountID,
-		}, execution.BatchExecOpts{
-			FunctionPausedAt: opts.FunctionPausedAt,
-		}); err != nil {
+		}, opts...); err != nil {
 			return fmt.Errorf("could not retrieve and schedule batch items: %w", err)
 		}
 	default:
@@ -2494,12 +2496,8 @@ func (e *executor) AppendAndScheduleBatchWithOpts(ctx context.Context, fn innges
 	return nil
 }
 
-func (e *executor) RetrieveAndScheduleBatch(ctx context.Context, fn inngest.Function, payload batch.ScheduleBatchPayload) error {
-	return e.RetrieveAndScheduleBatchWithOpts(ctx, fn, payload, execution.BatchExecOpts{})
-}
-
-// RetrieveAndScheduleBatchWithOpts retrieves all items from a started batch and schedules a function run
-func (e *executor) RetrieveAndScheduleBatchWithOpts(ctx context.Context, fn inngest.Function, payload batch.ScheduleBatchPayload, opts execution.BatchExecOpts) error {
+// RetrieveAndScheduleBatch retrieves all items from a started batch and schedules a function run
+func (e *executor) RetrieveAndScheduleBatch(ctx context.Context, fn inngest.Function, payload batch.ScheduleBatchPayload, opts ...BatchExecOpt) error {
 	evtList, err := e.batcher.RetrieveItems(ctx, payload.BatchID)
 	if err != nil {
 		return err
@@ -2536,6 +2534,11 @@ func (e *executor) RetrieveAndScheduleBatchWithOpts(ctx context.Context, fn inng
 		}
 	}
 
+	batchExecOpts := BatchExecOpts{}
+	for _, opt := range opts {
+		opt(&batchExecOpts)
+	}
+
 	key := fmt.Sprintf("%s-%s", fn.ID, payload.BatchID)
 	identifier, err := e.Schedule(ctx, execution.ScheduleRequest{
 		AccountID:        payload.AccountID,
@@ -2545,7 +2548,7 @@ func (e *executor) RetrieveAndScheduleBatchWithOpts(ctx context.Context, fn inng
 		Events:           events,
 		BatchID:          &payload.BatchID,
 		IdempotencyKey:   &key,
-		FunctionPausedAt: opts.FunctionPausedAt,
+		FunctionPausedAt: batchExecOpts.FunctionPausedAt,
 	})
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
