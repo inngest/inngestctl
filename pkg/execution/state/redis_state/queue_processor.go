@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/inngest/inngest/pkg/enums"
 	"math/rand"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/inngest/inngest/pkg/enums"
 
 	"github.com/VividCortex/ewma"
 	osqueue "github.com/inngest/inngest/pkg/execution/queue"
@@ -602,7 +603,14 @@ func (q *queue) worker(ctx context.Context, f osqueue.RunFunc) {
 			// XXX: When jobs can have their own cancellation signals, move this into
 			// process itself.
 			processCtx, cancel := context.WithCancel(context.Background())
-			err := q.process(processCtx, i.P, i.I, i.S, f)
+			err := q.process(
+				processCtx,
+				i.P,
+				i.I,
+				i.PCtr,
+				i.S,
+				f,
+			)
 			q.sem.Release(1)
 			metrics.WorkerQueueCapacityCounter(ctx, -1, metrics.CounterOpt{PkgName: pkgName})
 			cancel()
@@ -630,6 +638,47 @@ func (q *queue) scan(ctx context.Context) error {
 		metricShardName = "<global>" // default global name for metrics in this function
 	)
 
+	eg := errgroup.Group{}
+
+	// If we have continued partitions, process those immediately.
+	q.continuesLock.Lock()
+	for _, c := range q.continues {
+		cont := c
+		eg.Go(func() error {
+			p := cont.partition
+			if q.capacity() == 0 {
+				// no longer any available workers for partition, so we can skip
+				// work
+				metrics.IncrQueueScanNoCapacityCounter(ctx, metrics.CounterOpt{PkgName: pkgName})
+				return nil
+			}
+			if p.PartitionType != int(enums.PartitionTypeDefault) {
+				return nil
+			}
+
+			// TODO: Continuation metric
+			if err := q.processPartition(ctx, p, cont.count, shard); err != nil {
+				if err == ErrPartitionNotFound || err == ErrPartitionGarbageCollected {
+					// Another worker grabbed the partition, or the partition was deleted
+					// during the scan by an another worker.
+					// TODO: Increase internal metrics
+					return nil
+				}
+				if errors.Unwrap(err) != context.Canceled {
+					q.logger.Error().Err(err).Msg("error processing partition")
+				}
+				return err
+			}
+
+			metrics.IncrQueuePartitionProcessedCounter(ctx, metrics.CounterOpt{
+				PkgName: pkgName,
+				Tags:    map[string]any{"shard": metricShardName},
+			})
+			return nil
+		})
+	}
+	q.continuesLock.Unlock()
+
 	// By default, use the global partition
 	partitionKey := q.u.kg.GlobalPartitionIndex()
 
@@ -654,8 +703,6 @@ func (q *queue) scan(ctx context.Context) error {
 		return err
 	}
 
-	eg := errgroup.Group{}
-
 	for _, ptr := range partitions {
 		p := *ptr
 		eg.Go(func() error {
@@ -668,7 +715,10 @@ func (q *queue) scan(ctx context.Context) error {
 			if p.PartitionType != int(enums.PartitionTypeDefault) {
 				return nil
 			}
-			if err := q.processPartition(ctx, &p, shard); err != nil {
+
+			// This process is starting from a peek, so pass 0 as the continuation counter - we haven't yet
+			// done a continuation for sequential processing.
+			if err := q.processPartition(ctx, &p, 0, shard); err != nil {
 				if err == ErrPartitionNotFound || err == ErrPartitionGarbageCollected {
 					// Another worker grabbed the partition, or the partition was deleted
 					// during the scan by an another worker.
@@ -694,7 +744,7 @@ func (q *queue) scan(ctx context.Context) error {
 
 // NOTE: Shard is only passed as a reference if the partition was peeked from
 // a shard.  It exists for accounting and tracking purposes only, eg. to report shard metrics.
-func (q *queue) processPartition(ctx context.Context, p *QueuePartition, shard *QueueShard) error {
+func (q *queue) processPartition(ctx context.Context, p *QueuePartition, pCtr uint, shard *QueueShard) error {
 	// Attempt to lease items.  This checks partition-level concurrency limits
 	//
 	// For oprimization, because this is the only thread that can be leasing
@@ -776,13 +826,14 @@ func (q *queue) processPartition(ctx context.Context, p *QueuePartition, shard *
 	_, parallel := q.queueKindMapping[p.Queue()]
 
 	iter := processor{
-		partition:  p,
-		items:      queue,
-		shard:      shard,
-		queue:      q,
-		denies:     newLeaseDenyList(),
-		staticTime: q.clock.Now(),
-		parallel:   parallel,
+		partition:            p,
+		partitionContinueCtr: pCtr,
+		items:                queue,
+		shard:                shard,
+		queue:                q,
+		denies:               newLeaseDenyList(),
+		staticTime:           q.clock.Now(),
+		parallel:             parallel,
 	}
 
 	if processErr := iter.iterate(ctx); processErr != nil {
@@ -827,7 +878,15 @@ func (q *queue) processPartition(ctx context.Context, p *QueuePartition, shard *
 	return nil
 }
 
-func (q *queue) process(ctx context.Context, p QueuePartition, qi QueueItem, s *QueueShard, f osqueue.RunFunc) error {
+// process processes a job within a partition.
+func (q *queue) process(
+	ctx context.Context,
+	p QueuePartition,
+	qi QueueItem,
+	partitionCtr uint, // the number of times the partition has been continued
+	s *QueueShard,
+	f osqueue.RunFunc,
+) error {
 	var err error
 	leaseID := qi.LeaseID
 
@@ -945,17 +1004,18 @@ func (q *queue) process(ctx context.Context, p QueuePartition, qi QueueItem, s *
 		})
 
 		runInfo := osqueue.RunInfo{
-			Latency:      latency,
-			SojournDelay: sojourn,
-			Priority:     p.Priority,
-			ShardName:    "<global>",
+			Latency:       latency,
+			SojournDelay:  sojourn,
+			Priority:      p.Priority,
+			ShardName:     "<global>",
+			ContinueCount: partitionCtr,
 		}
 		if s != nil {
 			runInfo.ShardName = s.Name
 		}
 
 		// Call the run func.
-		err := f(jobCtx, runInfo, qi.Data)
+		isContinuation, err := f(jobCtx, runInfo, qi.Data)
 		extendLeaseTick.Stop()
 		if err != nil {
 			metrics.IncrQueueItemStatusCounter(ctx, metrics.CounterOpt{
@@ -969,6 +1029,12 @@ func (q *queue) process(ctx context.Context, p QueuePartition, qi QueueItem, s *
 			PkgName: pkgName,
 			Tags:    map[string]any{"status": "completed"},
 		})
+
+		if isContinuation {
+			// Add the partition to be continued again.  Note that if we've already
+			// continued beyond the limit this is a noop.
+			q.addContinue(&p, partitionCtr+1)
+		}
 
 		// Closing this channel prevents the goroutine which extends lease from leaking,
 		// and dequeues the job
@@ -1208,9 +1274,12 @@ func (t *trackingSemaphore) Release(n int64) {
 }
 
 type processor struct {
-	partition *QueuePartition
 	items     []*QueueItem
 	shard     *QueueShard
+	partition *QueuePartition
+	// partitionContinueCtr is the number of times the partition has currently been continued
+	// already in the chain.
+	partitionContinueCtr uint
 
 	// queue is the queue that owns this processor.
 	queue *queue

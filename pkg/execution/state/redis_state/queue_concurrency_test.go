@@ -69,7 +69,7 @@ func TestQueuePartitionConcurrency(t *testing.T) {
 
 	// Run the queue.
 	go func() {
-		_ = q.Run(ctx, func(ctx context.Context, _ osqueue.RunInfo, item osqueue.Item) error {
+		_ = q.Run(ctx, func(ctx context.Context, _ osqueue.RunInfo, item osqueue.Item) (bool, error) {
 			<-time.After(jobDuration / 2)
 			// each job takes 2 seconds to complete.
 			switch item.Identifier.WorkflowID {
@@ -80,7 +80,7 @@ func TestQueuePartitionConcurrency(t *testing.T) {
 				atomic.AddInt32(&counter_10, 1)
 			}
 			<-time.After(jobDuration / 2)
-			return nil
+			return false, nil
 		})
 	}()
 

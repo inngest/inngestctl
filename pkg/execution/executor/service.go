@@ -168,17 +168,21 @@ func (s *svc) getFinishHandler(ctx context.Context) (func(context.Context, sv2.I
 
 func (s *svc) Run(ctx context.Context) error {
 	logger.From(ctx).Info().Msg("subscribing to function queue")
-	return s.queue.Run(ctx, func(ctx context.Context, info queue.RunInfo, item queue.Item) error {
+	return s.queue.Run(ctx, func(ctx context.Context, info queue.RunInfo, item queue.Item) (bool, error) {
 		// Don't stop the service on errors.
 		s.wg.Add(1)
 		defer s.wg.Done()
 
 		item.RunInfo = &info
 
-		var err error
+		var (
+			err          error
+			continuation bool
+		)
+
 		switch item.Kind {
 		case queue.KindStart, queue.KindEdge, queue.KindSleep, queue.KindEdgeError:
-			err = s.handleQueueItem(ctx, item)
+			continuation, err = s.handleQueueItem(ctx, item)
 		case queue.KindPause:
 			err = s.handlePauseTimeout(ctx, item)
 		case queue.KindDebounce:
@@ -193,7 +197,7 @@ func (s *svc) Run(ctx context.Context) error {
 			logger.StdlibLogger(ctx).Error("error handling queue item", "error", err)
 		}
 
-		return err
+		return continuation, err
 	})
 }
 
@@ -205,10 +209,10 @@ func (s *svc) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (s *svc) handleQueueItem(ctx context.Context, item queue.Item) error {
+func (s *svc) handleQueueItem(ctx context.Context, item queue.Item) (bool, error) {
 	payload, err := queue.GetEdge(item)
 	if err != nil {
-		return fmt.Errorf("unable to get edge from queue item: %w", err)
+		return false, fmt.Errorf("unable to get edge from queue item: %w", err)
 	}
 	edge := payload.Edge
 
@@ -216,32 +220,36 @@ func (s *svc) handleQueueItem(ctx context.Context, item queue.Item) error {
 	// Check if the execution is cancelled, and if so finalize and terminate early.
 	// This prevents steps from scheduling children.
 	if err == state.ErrFunctionCancelled {
-		return nil
+		return false, nil
 	}
 
 	if errors.Is(err, ErrHandledStepError) {
 		// Retry any next steps.
-		return err
+		return false, err
 	}
 
 	if err != nil || (resp != nil && resp.Err != nil) {
 		// Accordingly, we check if the driver's response is retryable here;
 		// this will let us know whether we can re-enqueue.
 		if resp != nil && !resp.Retryable() {
-			return nil
+			return false, nil
 		}
 
 		// If the error is not of type response error, we assume the step is
 		// always retryable.
 		if resp == nil || err != nil {
-			return err
+			return false, err
 		}
 
 		// Always retry; non-retryable is covered above.
-		return fmt.Errorf("%s", resp.Error())
+		return false, fmt.Errorf("%s", resp.Error())
 	}
 
-	return nil
+	if resp != nil && len(resp.Generator) > 0 {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (s *svc) handlePauseTimeout(ctx context.Context, item queue.Item) error {

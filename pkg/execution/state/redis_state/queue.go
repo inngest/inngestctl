@@ -159,6 +159,12 @@ func WithName(name string) func(q *queue) {
 	}
 }
 
+func WithQueueContinuationLimit(limit uint) QueueOpt {
+	return func(q *queue) {
+		q.continuationLimit = limit
+	}
+}
+
 func WithQueueLifecycles(l ...QueueLifecycleListener) QueueOpt {
 	return func(q *queue) {
 		q.lifecycles = l
@@ -362,11 +368,14 @@ func NewQueue(u *QueueClient, opts ...QueueOpt) *queue {
 		partitionConcurrencyGen: func(ctx context.Context, p QueuePartition) (string, int) {
 			return p.Queue(), 10_000
 		},
-		itemIndexer:    QueueItemIndexerFunc,
-		backoffFunc:    backoff.DefaultBackoff,
-		shardLeases:    []leasedShard{},
-		shardLeaseLock: &sync.Mutex{},
-		clock:          clockwork.NewRealClock(),
+		itemIndexer:       QueueItemIndexerFunc,
+		backoffFunc:       backoff.DefaultBackoff,
+		shardLeases:       []leasedShard{},
+		shardLeaseLock:    &sync.Mutex{},
+		clock:             clockwork.NewRealClock(),
+		continuesLock:     &sync.Mutex{},
+		continues:         map[string]continuation{},
+		continuationLimit: consts.DefaultQueueContinueLimit,
 	}
 
 	for _, opt := range opts {
@@ -474,6 +483,21 @@ type queue struct {
 	backoffFunc backoff.BackoffFunc
 
 	clock clockwork.Clock
+
+	// continues stores a map of all partition IDs to continues for a partition.
+	// this lets us optimize running consecutive steps for a function, as a continuation, to a specific limit.
+	continues map[string]continuation
+	// continuesLock protects the continues map.
+	continuesLock     *sync.Mutex
+	continuationLimit uint
+}
+
+// continuation represents a partition continuation, forcung the queue to continue working
+// on a partition once a job from a partition has been processed.
+type continuation struct {
+	partition *QueuePartition
+	// count is stored and incremented each time the partition is enqueued.
+	count uint
 }
 
 // processItem references the queue partition and queue item to be processed by a worker.
@@ -483,6 +507,8 @@ type processItem struct {
 	P QueuePartition
 	I QueueItem
 	S *QueueShard
+	// PCtr represents the number of times the partition has been continued.
+	PCtr uint
 }
 
 // QueueShard represents a sub-partition for a group of functions.  Shards maintain their
@@ -2276,6 +2302,31 @@ func (q *queue) setPeekEWMA(ctx context.Context, fnID uuid.UUID, val int64) erro
 	}
 
 	return nil
+}
+
+func (q *queue) addContinue(p *QueuePartition, ctr uint) {
+	if ctr >= q.continuationLimit {
+		// This is over the limit for conntinuing the partition, so force it to be
+		// removed in every case.
+		q.continuesLock.Lock()
+		delete(q.continues, p.Queue())
+		q.continuesLock.Unlock()
+
+		// TODO: Cooldown;  block this partition from having a continuation for the next
+		// 5 seconds.
+
+		return
+	}
+
+	q.continuesLock.Lock()
+	c, ok := q.continues[p.Queue()]
+	if !ok || c.count < ctr {
+		// Update the continue count if it doesn't exist, or the current counter
+		// is higher.  This ensures that we always have the highest continuation
+		// count stored for queue processing.
+		q.continues[p.Queue()] = continuation{partition: p, count: ctr}
+	}
+	q.continuesLock.Unlock()
 }
 
 func HashID(ctx context.Context, id string) string {

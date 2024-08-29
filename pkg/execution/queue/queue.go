@@ -23,9 +23,22 @@ type RunInfo struct {
 	SojournDelay time.Duration
 	Priority     uint
 	ShardName    string
+	// ContinueCount represents the total number of continues that the queue has processed
+	// via RunFunc returning true.  This allows us to prevent unbounded sequential processing
+	// on the same function by limiting the number of continues possible within a given chain.
+	ContinueCount uint
 }
 
-type RunFunc func(context.Context, RunInfo, Item) error
+// RunFunc represents a function called to process each item in the queue.  This may be
+// called in parallel.
+//
+// RunFunc returns a boolean representing whether the Item enqueued more work within the
+// same function run.  If set to true, the queue may choose to continue processing the
+// partition to improve inter-step latency.
+//
+// If the RunFunc returns an error, the Item will be nacked and retried depending on the
+// Item's retry policy.
+type RunFunc func(context.Context, RunInfo, Item) (bool, error)
 
 type Producer interface {
 	// Enqueue allows an item to be enqueued ton run at the given time.
