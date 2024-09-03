@@ -383,6 +383,12 @@ func (f Function) Validate(ctx context.Context) error {
 		}
 	}
 
+	if f.Throttle != nil {
+		if f.Throttle.Period > consts.FunctionIdempotencyPeriod {
+			return fmt.Errorf("Throttle period must be less than %s", consts.FunctionIdempotencyPeriod)
+		}
+	}
+
 	return err
 }
 

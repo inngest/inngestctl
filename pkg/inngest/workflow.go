@@ -117,7 +117,7 @@ func (r RateLimit) IsValid(ctx context.Context) error {
 		return fmt.Errorf("failed to parse time duration: %w", err)
 	}
 	if dur > consts.FunctionIdempotencyPeriod {
-		return fmt.Errorf("period must be less than %s", consts.FunctionIdempotencyPeriod)
+		return fmt.Errorf("Rate limit period must be less than %s", consts.FunctionIdempotencyPeriod)
 	}
 
 	return nil
