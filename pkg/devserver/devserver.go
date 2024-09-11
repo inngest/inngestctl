@@ -22,6 +22,7 @@ import (
 	"github.com/inngest/inngest/pkg/coreapi"
 	"github.com/inngest/inngest/pkg/cqrs/sqlitecqrs"
 	"github.com/inngest/inngest/pkg/deploy"
+	"github.com/inngest/inngest/pkg/devserver/devcdc"
 	"github.com/inngest/inngest/pkg/event"
 	"github.com/inngest/inngest/pkg/execution"
 	"github.com/inngest/inngest/pkg/execution/batch"
@@ -309,6 +310,7 @@ func start(ctx context.Context, opts StartOpts) error {
 	ds.State = sm
 	ds.Queue = rq
 	ds.Executor = exec
+
 	// start the API
 	// Create a new API endpoint which hosts SDK-related functionality for
 	// registering functions.
@@ -327,6 +329,11 @@ func start(ctx context.Context, opts StartOpts) error {
 			JobQueueReader:    ds.Queue.(queue.JobQueueReader),
 			Executor:          ds.Executor,
 		})
+	})
+
+	ds.cdc = devcdc.New(ctx)
+	devAPI.Route("/cdc/", func(r chi.Router) {
+		ds.cdc.AddAPIRoutes(r)
 	})
 
 	// ds.opts.Config.EventStream.Service.TopicName()

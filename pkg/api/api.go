@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -282,4 +284,50 @@ func (a API) Invoke(w http.ResponseWriter, r *http.Request) {
 		ID:     evtID,
 		Status: 200,
 	})
+}
+
+// DisplayRoutes is a non-production utility to print routes via an HTTP request.
+func DisplayRoutes(rtr chi.Router) string {
+	routes := map[string][]string{}
+	maxLen := 0
+
+	_ = chi.Walk(rtr, func(method string, route string, handler http.Handler, mw ...func(http.Handler) http.Handler) error {
+		if len(route) > maxLen {
+			maxLen = len(route)
+		}
+
+		if route == "routes" {
+			return nil
+		}
+
+		if _, ok := routes[route]; ok {
+			routes[route] = append(routes[route], method)
+		} else {
+			routes[route] = []string{method}
+		}
+		return nil
+	})
+
+	// Print routes alphabetically
+	keys := []string{}
+	for route := range routes {
+		keys = append(keys, route)
+	}
+	sort.Strings(keys)
+
+	sb := &strings.Builder{}
+
+	fmt.Fprintf(sb, "Route%s\tMethod\n\n", strings.Repeat(" ", maxLen-5))
+
+	for _, route := range keys {
+		printedRoute := route
+		if len(route) < maxLen {
+			printedRoute = fmt.Sprintf("%s%s", route, strings.Repeat(" ", maxLen-len(route)))
+		}
+		for _, method := range routes[route] {
+			fmt.Fprintf(sb, "%s\t%s\n", printedRoute, method)
+		}
+	}
+
+	return sb.String()
 }

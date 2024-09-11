@@ -38,6 +38,10 @@ var (
 	// DefaultMaxBodySize is the default maximum size read within a single incoming
 	// invoke request (100MB).
 	DefaultMaxBodySize = 1024 * 1024 * 100
+
+	capabilities = sdk.Capabilities{
+		TrustProbe: sdk.TrustProbeV1,
+	}
 )
 
 const (
@@ -234,6 +238,12 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	case http.MethodPost:
+		probe := r.URL.Query().Get("probe")
+		if probe == "trust" {
+			h.trust(r.Context(), w, r)
+			return
+		}
+
 		if err := h.invoke(w, r); err != nil {
 			_ = publicerr.WriteHTTP(w, err)
 		}
@@ -285,6 +295,7 @@ func (h *handler) register(w http.ResponseWriter, r *http.Request) error {
 			Env:      h.GetEnv(),
 			Platform: platform(),
 		},
+		Capabilities: capabilities,
 	}
 
 	for _, fn := range h.funcs {
@@ -475,7 +486,7 @@ func (h *handler) invoke(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	if valid, err := ValidateSignature(
+	if valid, _, err := ValidateSignature(
 		r.Context(),
 		sig,
 		h.GetSigningKey(),
@@ -634,8 +645,9 @@ type insecureIntrospection struct {
 
 type secureIntrospection struct {
 	insecureIntrospection
-	SigningKeyFallbackHash *string `json:"signing_key_fallback_hash"`
-	SigningKeyHash         *string `json:"signing_key_hash"`
+	Capabilities           sdk.Capabilities `json:"capabilities"`
+	SigningKeyFallbackHash *string          `json:"signing_key_fallback_hash"`
+	SigningKeyHash         *string          `json:"signing_key_hash"`
 }
 
 func (h *handler) introspect(w http.ResponseWriter, r *http.Request) error {
@@ -647,7 +659,7 @@ func (h *handler) introspect(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	sig := r.Header.Get(HeaderKeySignature)
-	valid, _ := ValidateSignature(
+	valid, _, _ := ValidateSignature(
 		r.Context(),
 		sig,
 		h.GetSigningKey(),
@@ -682,6 +694,7 @@ func (h *handler) introspect(w http.ResponseWriter, r *http.Request) error {
 				HasSigningKey: h.GetSigningKey() != "",
 				Mode:          mode,
 			},
+			Capabilities:           capabilities,
 			SigningKeyFallbackHash: signingKeyFallbackHash,
 			SigningKeyHash:         signingKeyHash,
 		}
@@ -700,6 +713,79 @@ func (h *handler) introspect(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set(HeaderKeyContentType, "application/json")
 	return json.NewEncoder(w).Encode(introspection)
 
+}
+
+type trustProbeResponse struct {
+	Error *string `json:"error,omitempty"`
+}
+
+func (h *handler) trust(
+	ctx context.Context,
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	w.Header().Add("Content-Type", "application/json")
+	sig := r.Header.Get(HeaderKeySignature)
+	if sig == "" {
+		_ = publicerr.WriteHTTP(w, publicerr.Error{
+			Message: fmt.Sprintf("missing %s header", HeaderKeySignature),
+			Status:  401,
+		})
+		return
+	}
+
+	max := h.HandlerOpts.MaxBodySize
+	if max == 0 {
+		max = DefaultMaxBodySize
+	}
+	byt, err := io.ReadAll(http.MaxBytesReader(w, r.Body, int64(max)))
+	if err != nil {
+		h.Logger.Error("error decoding function request", "error", err)
+		_ = publicerr.WriteHTTP(w, publicerr.Error{
+			Message: fmt.Sprintf("error decoding function request: %s", err),
+		})
+		return
+	}
+
+	valid, key, err := ValidateSignature(
+		ctx,
+		r.Header.Get("X-Inngest-Signature"),
+		h.GetSigningKey(),
+		h.GetSigningKeyFallback(),
+		byt,
+	)
+	if err != nil {
+		_ = publicerr.WriteHTTP(w, publicerr.Error{
+			Message: fmt.Sprintf("error validating signature: %s", err),
+		})
+		return
+	}
+	if !valid {
+		_ = publicerr.WriteHTTP(w, publicerr.Error{
+			Message: "invalid signature",
+			Status:  401,
+		})
+		return
+	}
+
+	byt, err = json.Marshal(trustProbeResponse{})
+	if err != nil {
+		_ = publicerr.WriteHTTP(w, err)
+		return
+	}
+
+	resSig, err := Sign(ctx, time.Now(), []byte(key), byt)
+	if err != nil {
+		_ = publicerr.WriteHTTP(w, err)
+		return
+	}
+
+	w.Header().Add("X-Inngest-Signature", resSig)
+	w.WriteHeader(200)
+	_, err = w.Write(byt)
+	if err != nil {
+		h.Logger.Error("error writing trust probe response", "error", err)
+	}
 }
 
 type StreamResponse struct {

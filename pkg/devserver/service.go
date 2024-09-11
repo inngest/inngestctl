@@ -16,6 +16,7 @@ import (
 	"github.com/inngest/inngest/pkg/consts"
 	"github.com/inngest/inngest/pkg/cqrs"
 	"github.com/inngest/inngest/pkg/deploy"
+	"github.com/inngest/inngest/pkg/devserver/devcdc"
 	"github.com/inngest/inngest/pkg/devserver/discovery"
 	"github.com/inngest/inngest/pkg/event"
 	"github.com/inngest/inngest/pkg/execution"
@@ -91,6 +92,9 @@ type devserver struct {
 	// Used to lock the snapshotting process.
 	snapshotLock        *sync.Mutex
 	persistenceInterval *time.Duration
+
+	// cdc is used to test cdc in development
+	cdc devcdc.DevCDC
 }
 
 func (d *devserver) Name() string {
@@ -171,7 +175,9 @@ func (d *devserver) Stop(ctx context.Context) error {
 	if d.persistenceInterval != nil {
 		return d.exportRedisSnapshot(ctx)
 	}
-
+	if d.cdc != nil {
+		d.cdc.Stop()
+	}
 	return nil
 }
 

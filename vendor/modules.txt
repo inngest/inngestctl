@@ -292,7 +292,7 @@ github.com/beorn7/perks/quantile
 # github.com/cenkalti/backoff/v4 v4.3.0
 ## explicit; go 1.18
 github.com/cenkalti/backoff/v4
-# github.com/cespare/xxhash/v2 v2.2.0
+# github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
 # github.com/charmbracelet/lipgloss v0.5.0
@@ -508,18 +508,50 @@ github.com/hashicorp/hcl/hcl/token
 github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
-# github.com/inconshreveable/mousetrap v1.0.0
-## explicit
+# github.com/inconshreveable/mousetrap v1.1.0
+## explicit; go 1.18
 github.com/inconshreveable/mousetrap
+# github.com/inngest/dbcap v0.0.0-20240909203954-f8b6b640371e
+## explicit; go 1.22.0
+github.com/inngest/dbcap/pkg/changeset
+github.com/inngest/dbcap/pkg/consts/pgconsts
+github.com/inngest/dbcap/pkg/decoder
+github.com/inngest/dbcap/pkg/eventwriter
+github.com/inngest/dbcap/pkg/replicator
+github.com/inngest/dbcap/pkg/schema
 # github.com/inngest/expr v0.0.0-20240717151033-03e4378c436c
 ## explicit; go 1.21.0
 github.com/inngest/expr
-# github.com/inngest/inngestgo v0.7.3-0.20240718000349-c9247956e061
+# github.com/inngest/inngestgo v0.7.4-0.20240905111259-c5e425b57232
 ## explicit; go 1.21.0
 github.com/inngest/inngestgo
 github.com/inngest/inngestgo/errors
 github.com/inngest/inngestgo/internal/sdkrequest
 github.com/inngest/inngestgo/step
+# github.com/jackc/pgio v1.0.0
+## explicit; go 1.12
+github.com/jackc/pgio
+# github.com/jackc/pglogrepl v0.0.0-20240307033717-828fbfe908e9
+## explicit; go 1.19
+github.com/jackc/pglogrepl
+# github.com/jackc/pgpassfile v1.0.0
+## explicit; go 1.12
+github.com/jackc/pgpassfile
+# github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a
+## explicit; go 1.14
+github.com/jackc/pgservicefile
+# github.com/jackc/pgx/v5 v5.6.0
+## explicit; go 1.20
+github.com/jackc/pgx/v5
+github.com/jackc/pgx/v5/internal/iobufpool
+github.com/jackc/pgx/v5/internal/pgio
+github.com/jackc/pgx/v5/internal/sanitize
+github.com/jackc/pgx/v5/internal/stmtcache
+github.com/jackc/pgx/v5/pgconn
+github.com/jackc/pgx/v5/pgconn/ctxwatch
+github.com/jackc/pgx/v5/pgconn/internal/bgreader
+github.com/jackc/pgx/v5/pgproto3
+github.com/jackc/pgx/v5/pgtype
 # github.com/jedib0t/go-pretty/v6 v6.3.0
 ## explicit; go 1.16
 github.com/jedib0t/go-pretty/v6/table
@@ -542,16 +574,16 @@ github.com/karlseguin/ccache/v2
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
 github.com/kballard/go-shellquote
-# github.com/klauspost/compress v1.17.2
-## explicit; go 1.18
+# github.com/klauspost/compress v1.17.4
+## explicit; go 1.19
 github.com/klauspost/compress/flate
 # github.com/lib/pq v1.10.6
 ## explicit; go 1.13
 # github.com/lucasb-eyer/go-colorful v1.2.0
 ## explicit; go 1.12
 github.com/lucasb-eyer/go-colorful
-# github.com/magiconair/properties v1.8.5
-## explicit; go 1.13
+# github.com/magiconair/properties v1.8.7
+## explicit; go 1.19
 github.com/magiconair/properties
 # github.com/mattn/go-ieproxy v0.0.3
 ## explicit; go 1.14
@@ -618,7 +650,7 @@ github.com/opentracing/opentracing-go/log
 # github.com/pascaldekloe/name v1.0.1
 ## explicit; go 1.10
 github.com/pascaldekloe/name
-# github.com/pelletier/go-toml v1.9.4
+# github.com/pelletier/go-toml v1.9.5
 ## explicit; go 1.12
 github.com/pelletier/go-toml
 # github.com/pkg/errors v0.9.1
@@ -664,6 +696,10 @@ github.com/redis/rueidis/rueidiscompat
 # github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec
 ## explicit; go 1.12
 github.com/remyoudompheng/bigfft
+# github.com/replicase/pgcapture v0.0.62
+## explicit; go 1.20
+github.com/replicase/pgcapture/pkg/pb
+github.com/replicase/pgcapture/pkg/sql
 # github.com/rivo/uniseg v0.2.0
 ## explicit; go 1.12
 github.com/rivo/uniseg
@@ -692,7 +728,7 @@ github.com/spf13/afero/mem
 # github.com/spf13/cast v1.4.1
 ## explicit
 github.com/spf13/cast
-# github.com/spf13/cobra v1.4.0
+# github.com/spf13/cobra v1.7.0
 ## explicit; go 1.15
 github.com/spf13/cobra
 # github.com/spf13/jwalterweatherman v1.1.0
@@ -726,11 +762,11 @@ github.com/throttled/throttled/v2/store/storetest
 # github.com/tidwall/btree v1.7.0
 ## explicit; go 1.19
 github.com/tidwall/btree
-# github.com/tklauser/go-sysconf v0.3.10
+# github.com/tklauser/go-sysconf v0.3.12
 ## explicit; go 1.13
 github.com/tklauser/go-sysconf
-# github.com/tklauser/numcpus v0.4.0
-## explicit; go 1.11
+# github.com/tklauser/numcpus v0.6.1
+## explicit; go 1.13
 github.com/tklauser/numcpus
 # github.com/urfave/cli/v2 v2.25.1
 ## explicit; go 1.18
@@ -756,7 +792,7 @@ github.com/yuin/gopher-lua
 github.com/yuin/gopher-lua/ast
 github.com/yuin/gopher-lua/parse
 github.com/yuin/gopher-lua/pm
-# github.com/yusufpapurcu/wmi v1.2.2
+# github.com/yusufpapurcu/wmi v1.2.3
 ## explicit; go 1.16
 github.com/yusufpapurcu/wmi
 # go.opencensus.io v0.24.0
@@ -935,6 +971,7 @@ golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/nacl/box
 golang.org/x/crypto/nacl/secretbox
+golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/salsa20/salsa
 # golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 ## explicit; go 1.20
@@ -999,6 +1036,7 @@ golang.org/x/text/internal/utf8internal
 golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/secure/bidirule
+golang.org/x/text/secure/precis
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
