@@ -25,6 +25,7 @@ import (
 	"github.com/inngest/inngest/pkg/execution/state"
 	"github.com/inngest/inngest/pkg/headers"
 	"github.com/inngest/inngest/pkg/history_reader"
+	"github.com/inngest/inngest/pkg/keys"
 	"github.com/inngest/inngest/pkg/logger"
 	"github.com/inngest/inngest/pkg/publicerr"
 	"github.com/oklog/ulid/v2"
@@ -45,7 +46,7 @@ type Options struct {
 	HistoryReader history_reader.Reader
 
 	// LocalSigningKey is the key used to sign events for self-hosted services.
-	LocalSigningKey string
+	LocalSigningKey *keys.SigningKey
 
 	// RequireKeys defines whether event and signing keys are required for the
 	// server to function. If this is true and signing keys are not defined,

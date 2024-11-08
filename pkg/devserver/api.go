@@ -140,7 +140,7 @@ func (a devapi) Info(w http.ResponseWriter, r *http.Request) {
 		Functions:           funcs,
 		Handlers:            a.devserver.handlers,
 		IsSingleNodeService: a.devserver.IsSingleNodeService(),
-		IsMissingSigningKey: a.devserver.Opts.RequireKeys && !a.devserver.HasSigningKey(),
+		IsMissingSigningKey: a.devserver.Opts.RequireKeys && !a.devserver.HasValidSigningKey(),
 		IsMissingEventKeys:  a.devserver.Opts.RequireKeys && !a.devserver.HasEventKeys(),
 		Features:            features,
 	}
@@ -154,10 +154,49 @@ func (a devapi) Register(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	ctx := r.Context()
 
+	if a.devserver.Opts.RequireKeys && !a.devserver.HasValidSigningKey() {
+		errMsg := "no signing key provided in server; add a signing key to allow syncing and runs"
+
+		logger.From(ctx).Warn().Msg(errMsg)
+		a.err(ctx, w, 401, fmt.Errorf(errMsg))
+		return
+	}
+
 	expectedServerKind := r.Header.Get(headers.HeaderKeyExpectedServerKind)
 	if expectedServerKind != "" && expectedServerKind != a.devserver.Opts.Config.GetServerKind() {
 		a.err(ctx, w, 400, fmt.Errorf("Expected server kind %s, got %s", a.devserver.Opts.Config.GetServerKind(), expectedServerKind))
 		return
+	}
+
+	if a.devserver.Opts.Config.GetServerKind() == headers.ServerKindCloud {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			errMsg := "no authorization header provided"
+
+			logger.From(ctx).Warn().Msg(errMsg)
+			a.err(ctx, w, 401, fmt.Errorf(errMsg))
+			return
+		}
+
+		if len(authHeader) > 7 && strings.ToUpper(authHeader[0:6]) == "BEARER" {
+			authHeader = authHeader[7:]
+		}
+
+		if authHeader == "" {
+			errMsg := "empty authorization header provided"
+
+			logger.From(ctx).Warn().Msg(errMsg)
+			a.err(ctx, w, 401, fmt.Errorf(errMsg))
+			return
+		}
+
+		if !a.devserver.Opts.SigningKey.Equal(authHeader) {
+			errMsg := "invalid authorization header provided"
+
+			logger.From(ctx).Warn().Msg(errMsg)
+			a.err(ctx, w, 401, fmt.Errorf(errMsg))
+			return
+		}
 	}
 
 	a.devserver.handlerLock.Lock()

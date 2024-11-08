@@ -40,6 +40,7 @@ import (
 	"github.com/inngest/inngest/pkg/expressions"
 	"github.com/inngest/inngest/pkg/history_drivers/memory_reader"
 	"github.com/inngest/inngest/pkg/history_drivers/memory_writer"
+	"github.com/inngest/inngest/pkg/keys"
 	"github.com/inngest/inngest/pkg/logger"
 	"github.com/inngest/inngest/pkg/pubsub"
 	"github.com/inngest/inngest/pkg/run"
@@ -70,7 +71,7 @@ type StartOpts struct {
 
 	// SigningKey is used to decide that the server should sign requests and
 	// validate responses where applicable, modelling cloud behaviour.
-	SigningKey *string `json:"-"`
+	SigningKey *keys.SigningKey `json:"-"`
 
 	// EventKey is used to authorize incoming events, ensuring they match the
 	// given key.

@@ -9,6 +9,7 @@ import (
 	"github.com/inngest/inngest/cmd/commands/internal/localconfig"
 	"github.com/inngest/inngest/pkg/config"
 	"github.com/inngest/inngest/pkg/devserver"
+	"github.com/inngest/inngest/pkg/keys"
 	"github.com/inngest/inngest/pkg/lite"
 	itrace "github.com/inngest/inngest/pkg/telemetry/trace"
 	"github.com/spf13/cobra"
@@ -124,6 +125,8 @@ func doStart(cmd *cobra.Command, args []string) {
 		tick = devserver.DefaultTick
 	}
 
+	sk, _ := keys.NewSigningKey(viper.GetString("signing-key"))
+
 	opts := lite.StartOpts{
 		Config:        *conf,
 		PollInterval:  viper.GetInt("poll-interval"),
@@ -132,7 +135,7 @@ func doStart(cmd *cobra.Command, args []string) {
 		Tick:          time.Duration(tick) * time.Millisecond,
 		URLs:          viper.GetStringSlice("sdk-url"),
 		SQLiteDir:     viper.GetString("sqlite-dir"),
-		SigningKey:    viper.GetString("signing-key"),
+		SigningKey:    sk,
 		EventKey:      viper.GetStringSlice("event-key"),
 	}
 

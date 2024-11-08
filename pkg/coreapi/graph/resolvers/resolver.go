@@ -10,6 +10,7 @@ import (
 	"github.com/inngest/inngest/pkg/execution/queue"
 	"github.com/inngest/inngest/pkg/execution/runner"
 	"github.com/inngest/inngest/pkg/history_reader"
+	"github.com/inngest/inngest/pkg/keys"
 )
 
 type Resolver struct {
@@ -22,7 +23,7 @@ type Resolver struct {
 	ServerKind    string
 
 	// LocalSigningKey is the key used to sign events for self-hosted services.
-	LocalSigningKey string
+	LocalSigningKey *keys.SigningKey
 
 	// RequireKeys defines whether event and signing keys are required for the
 	// server to function. If this is true and signing keys are not defined,

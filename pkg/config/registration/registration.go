@@ -6,6 +6,7 @@ import (
 	"github.com/inngest/inngest/pkg/execution/driver"
 	"github.com/inngest/inngest/pkg/execution/queue"
 	"github.com/inngest/inngest/pkg/execution/state"
+	"github.com/inngest/inngest/pkg/keys"
 )
 
 var (
@@ -56,7 +57,7 @@ func RegisterState(f func() any) {
 }
 
 type NewDriverOpts struct {
-	LocalSigningKey        *string
+	LocalSigningKey        *keys.SigningKey
 	RequireLocalSigningKey bool
 }
 

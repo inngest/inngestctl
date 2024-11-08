@@ -26,8 +26,8 @@ func (c Config) NewDriver(opts ...registration.NewDriverOpts) (driver.Driver, er
 	var skey []byte
 	requireLocalSigningKey := false
 	if len(opts) > 0 {
-		if opts[0].LocalSigningKey != nil {
-			skey = []byte(*opts[0].LocalSigningKey)
+		if opts[0].LocalSigningKey != nil && opts[0].LocalSigningKey.Valid() {
+			skey = []byte(opts[0].LocalSigningKey.Raw())
 		}
 
 		if opts[0].RequireLocalSigningKey {
