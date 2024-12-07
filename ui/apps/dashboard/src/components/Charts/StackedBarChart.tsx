@@ -95,7 +95,7 @@ export default function StackedBarChart({
   const defaultDataKey = defaultLegend?.dataKey;
 
   return (
-    <div className={cn('border-b border-slate-200 bg-white px-6 py-4', className)}>
+    <div className={cn('border-subtle bg-canvasBase border-b px-6 py-4', className)}>
       <header className="flex items-center justify-between">
         <div className="flex gap-4">
           <h3 className="flex flex-row items-center gap-2 font-medium">{title}</h3>
@@ -110,7 +110,7 @@ export default function StackedBarChart({
         </div>
         <div className="flex justify-end gap-4">
           {legend.map((l) => (
-            <span key={l.name} className="inline-flex items-center text-sm text-slate-800">
+            <span key={l.name} className="text-subtle inline-flex items-center text-sm">
               <span
                 className="mr-2 inline-flex h-3 w-3 rounded"
                 style={{ backgroundColor: l.color }}

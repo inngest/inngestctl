@@ -53,16 +53,16 @@ export function FunctionTable({ rows = [] }: Props) {
   });
 
   return (
-    <main className="flex min-h-0 flex-col overflow-y-auto bg-slate-100">
-      <table className="border-b border-slate-200 bg-white">
-        <thead className="shadow-outline-primary-light sticky top-0 z-10 bg-white">
+    <main className="bg-canvasBase border-subtle flex min-h-0 flex-col overflow-y-auto">
+      <table className="border-subtle border-b">
+        <thead className="shadow-outline-primary-light border-subtle sticky top-0 z-10 border-b">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header, index) => (
                 <th
                   key={header.id}
                   className={cn(
-                    'w-fit whitespace-nowrap px-2 py-3 text-left text-xs font-semibold text-slate-600',
+                    'text-subtle w-fit whitespace-nowrap py-3 pr-2 text-left text-sm font-semibold',
                     index === 0 && 'pl-4',
                     index === columns.length - 1 && 'w-0'
                   )}
@@ -75,9 +75,9 @@ export function FunctionTable({ rows = [] }: Props) {
             </tr>
           ))}
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-subtle divide-y">
           {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="hover:bg-slate-100">
+            <tr key={row.id} className="hover:bg-canvasSubtle/50">
               {row.getVisibleCells().map((cell, index) => (
                 <td
                   key={cell.id}
@@ -199,7 +199,7 @@ function createColumns(environmentSlug: string) {
         }
 
         return (
-          <div className="flex items-center gap-1 px-2.5 text-sm text-slate-600">
+          <div className="text-basis flex items-center gap-1 px-2.5 text-sm">
             {icon}
             {value}%
           </div>
@@ -218,9 +218,9 @@ function createColumns(environmentSlug: string) {
           <div className="flex min-w-[212px] items-center justify-end gap-2">
             <span
               key="volume-count"
-              className="overflow-hidden whitespace-nowrap text-xs text-slate-600"
+              className="text-basis overflow-hidden whitespace-nowrap text-xs"
             >
-              <div className="flex items-center gap-1 align-middle text-sm text-slate-600">
+              <div className="text-basis flex items-center gap-1 align-middle text-sm">
                 <RiBarChart2Fill className="-ml-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500" />
                 {value.total.toLocaleString(undefined, {
                   notation: 'compact',

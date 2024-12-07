@@ -21,18 +21,26 @@ export default function MiniStackedBarChart({ data, className = '' }: MiniStacke
   }));
 
   return (
-    <div className={cn('box-border h-8 w-40 rounded border border-slate-200 bg-white', className)}>
+    <div
+      className={cn('border-subtle bg-canvasBase box-border h-8 w-40 rounded border', className)}
+    >
       <ResponsiveContainer>
         <BarChart
           data={mappedData}
           barCategoryGap={2}
           margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
         >
-          <Bar dataKey="failureCount" stackId="slot" fill="#f43f5e" radius={1} barSize={4} />
+          <Bar
+            dataKey="failureCount"
+            stackId="slot"
+            fill="rgb(var(--color-background-error))"
+            radius={1}
+            barSize={4}
+          />
           <Bar
             dataKey="nonFailureCount"
             stackId="slot"
-            fill="#CBD5E1"
+            fill="rgb(var(--color-carbon-300))"
             minPointSize={1}
             barSize={4}
             radius={[1, 1, 0, 0]}

@@ -107,16 +107,16 @@ export default function FunctionDashboardPage({ params }: FunctionDashboardProps
 
   return (
     <>
-      <div className="grid-cols-dashboard grid min-h-0 flex-1 bg-slate-100">
+      <div className="grid-cols-dashboard grid min-h-0 flex-1">
         <main className="col-span-3 overflow-y-auto">
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <div className="border-subtle flex items-center justify-between border-b px-5 py-4">
             <div className="flex gap-14">
               <div className="inline-flex gap-3">
-                <h3 className="inline-flex items-center gap-2 font-medium text-slate-600">
+                <h3 className="text-subtle inline-flex items-center gap-2 font-medium">
                   <RiBarChart2Fill className="h-5 text-indigo-500" />
                   Volume
                 </h3>
-                <span className="text-xl font-medium text-slate-800">
+                <span className="text-basis text-xl font-medium">
                   {usageMetrics?.totalRuns.toLocaleString(undefined, {
                     notation: 'compact',
                     compactDisplay: 'short',
@@ -124,10 +124,10 @@ export default function FunctionDashboardPage({ params }: FunctionDashboardProps
                 </span>
               </div>
               <div className="inline-flex gap-3">
-                <h3 className="inline-flex items-center gap-2 font-medium text-slate-600">
-                  <RiCloseCircleLine className="h-5 text-rose-500" /> Failure rate
+                <h3 className="text-subtle inline-flex items-center gap-2 font-medium">
+                  <RiCloseCircleLine className="text-status-failed h-5" /> Failure rate
                 </h3>
-                <span className="text-xl font-medium text-slate-800">{`${failureRate}%`}</span>
+                <span className="text-basis text-xl font-medium">{`${failureRate}%`}</span>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -151,13 +151,13 @@ export default function FunctionDashboardPage({ params }: FunctionDashboardProps
             />
           </div>
         </main>
-        <aside className="overflow-y-auto border-l border-slate-200 bg-white px-6 py-4">
+        <aside className="border-subtle overflow-y-auto border-l px-6 py-4">
           <ErrorBoundary
             fallback={({ error, resetError }) => (
               <div className="flex items-center justify-center">
                 <div className="rounded p-4">
                   <h2>Something went wrong!</h2>
-                  <div className="my-6 overflow-scroll rounded bg-slate-200 p-2">
+                  <div className="bg-canvasSubtle my-6 overflow-scroll rounded p-2">
                     {error.toString()}
                   </div>
                   <Button
@@ -175,14 +175,14 @@ export default function FunctionDashboardPage({ params }: FunctionDashboardProps
               <Block title="App">
                 <Link
                   href={appRoute}
-                  className="shadow-outline-secondary-light block rounded bg-white p-4 hover:bg-slate-50"
+                  className="shadow-outline-secondary-light bg-surfaceBase hover:bg-surfaceSubtle/50 text-basis block rounded p-4"
                 >
                   <div className="flex min-w-0 items-center">
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{function_.appName}</p>
                       {function_.current?.deploy?.createdAt && (
                         <Time
-                          className="text-xs text-slate-500"
+                          className="text-subtle text-xs"
                           format="relative"
                           value={new Date(function_.current.deploy.createdAt)}
                         />
@@ -201,7 +201,7 @@ export default function FunctionDashboardPage({ params }: FunctionDashboardProps
                         href={`/env/${params.environmentSlug}/events/${encodeURIComponent(
                           trigger.eventName
                         )}`}
-                        className="shadow-outline-secondary-light block rounded bg-white p-4 hover:bg-slate-50"
+                        className="shadow-outline-secondary-light bg-surfaceBase hover:bg-surfaceSubtle text-basis block rounded p-4"
                       >
                         <div className="flex min-w-0 items-center">
                           <div className="min-w-0 flex-1 space-y-1">
@@ -251,7 +251,7 @@ export default function FunctionDashboardPage({ params }: FunctionDashboardProps
                             href={`/env/${params.environmentSlug}/events/${encodeURIComponent(
                               cancellation.event
                             )}`}
-                            className="shadow-outline-secondary-light block rounded bg-white p-4 hover:bg-slate-50"
+                            className="shadow-outline-secondary-light bg-surfaceBase hover:bg-surfaceSubtle/50 text-basis block rounded p-4"
                           >
                             <div className="flex min-w-0 items-center">
                               <div className="min-w-0 flex-1 space-y-1">
@@ -262,10 +262,10 @@ export default function FunctionDashboardPage({ params }: FunctionDashboardProps
                                 <dl className="text-xs">
                                   {cancellation.condition && (
                                     <div className="flex gap-1">
-                                      <dt className="text-slate-500">If</dt>
+                                      <dt className="text-subtle">If</dt>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <dd className="truncate font-mono text-slate-800">
+                                          <dd className="text-basis truncate font-mono">
                                             {cancellation.condition}
                                           </dd>
                                         </TooltipTrigger>
@@ -277,8 +277,8 @@ export default function FunctionDashboardPage({ params }: FunctionDashboardProps
                                   )}
                                   {cancellation.timeout && (
                                     <div className="flex gap-1">
-                                      <dt className="text-slate-500">Timeout</dt>
-                                      <dd className="text-slate-800">{cancellation.timeout}</dd>
+                                      <dt className="text-subtle">Timeout</dt>
+                                      <dd className="text-basis">{cancellation.timeout}</dd>
                                     </div>
                                   )}
                                 </dl>
@@ -298,7 +298,7 @@ export default function FunctionDashboardPage({ params }: FunctionDashboardProps
                       href={`/env/${params.environmentSlug}/functions/${encodeURIComponent(
                         function_.failureHandler.slug
                       )}`}
-                      className="shadow-outline-secondary-light block rounded bg-white p-4 hover:bg-slate-50"
+                      className="shadow-outline-secondary-light bg-surfaceBase hover:bg-surfaceSubtle/50 text-basis block rounded p-4"
                     >
                       <div className="flex min-w-0 items-center">
                         <div className="min-w-0 flex-1">
@@ -333,7 +333,7 @@ function ScheduleTrigger({ schedule, condition }: ScheduleTriggerProps) {
   const { nextRun } = useCron(schedule);
 
   return (
-    <div className="rounded border border-slate-200 bg-white p-4">
+    <div className="border-subtle bg-surfaceBase rounded border p-4">
       <div className="flex min-w-0 items-center">
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex min-w-0 items-center">
@@ -343,10 +343,10 @@ function ScheduleTrigger({ schedule, condition }: ScheduleTriggerProps) {
           <dl className="text-xs">
             {condition && (
               <div className="flex gap-1">
-                <dt className="text-slate-500">If</dt>
+                <dt className="text-subtle">If</dt>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <dd className="truncate font-mono text-slate-800">{condition}</dd>
+                    <dd className="text-basis truncate font-mono">{condition}</dd>
                   </TooltipTrigger>
                   <TooltipContent className="font-mono text-xs">{condition}</TooltipContent>
                 </Tooltip>
@@ -354,10 +354,10 @@ function ScheduleTrigger({ schedule, condition }: ScheduleTriggerProps) {
             )}
             {nextRun && (
               <div className="flex gap-1">
-                <dt className="text-slate-500">Next Run</dt>
+                <dt className="text-subtle">Next Run</dt>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <dd className="truncate text-slate-800">{titleCase(relativeTime(nextRun))}</dd>
+                    <dd className="text-basis truncate">{titleCase(relativeTime(nextRun))}</dd>
                   </TooltipTrigger>
                   <TooltipContent className="font-mono text-xs">
                     {nextRun.toISOString()}

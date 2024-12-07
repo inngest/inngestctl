@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { type Route } from 'next';
 import { useRouter } from 'next/navigation';
-import { Button } from '@inngest/components/Button';
+import { NewButton } from '@inngest/components/Button';
 import { Time } from '@inngest/components/Time';
 import { useQuery } from 'urql';
 
@@ -80,9 +80,10 @@ export default function LatestFailedFunctionRuns({
 
   return (
     <div>
-      <header className="flex items-center gap-3 py-3">
-        <h1 className="font-semibold text-slate-700">Latest Failed Runs</h1>
-        <Button
+      <header className="flex items-center justify-between gap-3 py-3">
+        <h1 className="text-basis font-semibold">Latest Failed Runs</h1>
+        <NewButton
+          kind="secondary"
           className="ml-auto"
           appearance="outlined"
           href={
@@ -91,8 +92,8 @@ export default function LatestFailedFunctionRuns({
           label="View All Runs"
         />
       </header>
-      <div className="rounded-md border border-slate-200 text-sm text-slate-500">
-        <table className="w-full table-fixed divide-y divide-slate-200 rounded-lg bg-white">
+      <div className="border-subtle text-subtle rounded-md border text-sm">
+        <table className="divide-subtle bg-surfaceBase w-full table-fixed divide-y rounded-lg">
           <thead className="h-full text-left">
             <tr>
               <th className="p-4 font-semibold" scope="col">
@@ -103,7 +104,7 @@ export default function LatestFailedFunctionRuns({
               </th>
             </tr>
           </thead>
-          <tbody className="h-full divide-y divide-slate-200">
+          <tbody className="divide-subtle h-full divide-y">
             {!failedFunctionRuns && isFetchingFailedFunctionRuns && (
               <tr>
                 <td className="p-4 text-center" colSpan={3}>
@@ -132,7 +133,7 @@ export default function LatestFailedFunctionRuns({
                   return (
                     <tr
                       key={functionRun.id}
-                      className="cursor-pointer truncate transition-all hover:bg-slate-100"
+                      className="hover:bg-surfaceSubtle cursor-pointer truncate transition-all"
                       onClick={() =>
                         router.push(
                           pathCreator.runPopout({ envSlug: environmentSlug, runID: functionRun.id })
@@ -141,7 +142,7 @@ export default function LatestFailedFunctionRuns({
                     >
                       <td className="p-4">
                         <Time
-                          className="inline-flex min-w-[112px] pr-6 font-semibold text-slate-700"
+                          className="text-basis inline-flex min-w-[112px] pr-6 font-semibold"
                           format="relative"
                           value={new Date(functionRun.endedAt)}
                         />

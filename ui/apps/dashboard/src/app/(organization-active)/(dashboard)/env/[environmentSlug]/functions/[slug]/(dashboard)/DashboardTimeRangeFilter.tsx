@@ -116,7 +116,7 @@ export default function DashboardTimeRangeFilter({
         <>
           <Listbox.Label className="sr-only">Filter by time</Listbox.Label>
           <div className="relative">
-            <Listbox.Button className="shadow-outline-secondary-light group inline-flex items-center gap-1 rounded-[6px] bg-slate-50 px-3 py-[5px] text-sm font-medium capitalize text-slate-800 hover:bg-slate-100 focus:outline-indigo-500">
+            <Listbox.Button className="border-subtle bg-surfaceBase text-basis hover:bg-surfaceSubtle group inline-flex items-center gap-1 rounded-[6px] border px-3 py-[5px] text-sm font-medium capitalize focus:outline-none">
               <p>Last {getTimeRangeLabel(selectedTimeRange)}</p>
               <RiArrowDownSLine className="h-4 w-4" aria-hidden="true" />
             </Listbox.Button>
@@ -128,7 +128,7 @@ export default function DashboardTimeRangeFilter({
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Listbox.Options className="shadow-floating absolute right-0 z-10 mt-[5px] w-52 origin-top-right overflow-hidden rounded-md bg-white/95 py-[9px] ring-1 ring-black/5 backdrop-blur-[3px] focus:outline-none">
+              <Listbox.Options className="shadow-floating bg-surfaceBase border-subtle absolute right-0 z-10 mt-[5px] w-52 origin-top-right overflow-hidden rounded-md border py-[9px] ring-1 ring-black/5 backdrop-blur-[3px] focus:outline-none">
                 {timeRanges.map((timeRange) => {
                   const timeRangeStartInDaysAgo = dayjs(currentTime).diff(
                     dayjs(timeRange.start),
@@ -144,13 +144,13 @@ export default function DashboardTimeRangeFilter({
                   return (
                     <Listbox.Option
                       key={timeRange.end.valueOf() - timeRange.start.valueOf()}
-                      className="ui-selected:bg-indigo-100 ui-disabled:text-slate-400 ui-selected:text-indigo-700 flex cursor-pointer select-none items-center justify-between px-3.5 py-1 text-sm font-medium capitalize text-slate-800 hover:bg-slate-100 focus:outline-none"
+                      className="ui-selected:bg-canvasSubtle ui-disabled:text-disabled ui-selected:text-primary-moderate text-basis hover:bg-canvasSubtle/50 flex cursor-pointer select-none items-center justify-between px-3.5 py-1 text-sm font-medium capitalize focus:outline-none"
                       value={timeRange}
                       disabled={!isPlanSufficient}
                     >
                       {getTimeRangeLabel(timeRange)}{' '}
                       {!isPlanSufficient && minimumPlanName && (
-                        <span className="inline-flex items-center rounded px-[5px] py-0.5 text-[12px] font-semibold leading-tight text-indigo-500 ring-1 ring-inset ring-indigo-300">
+                        <span className="text-info ring-subtle inline-flex items-center rounded px-[5px] py-0.5 text-[12px] font-semibold leading-tight ring-1 ring-inset">
                           {minimumPlanName} Plan
                         </span>
                       )}
