@@ -1,5 +1,10 @@
+'use client';
+
+import { useState } from 'react';
 import { Header } from '@inngest/components/Header/Header';
 
+import { ActionsMenu } from '@/components/Events/ActionsMenu';
+import ArchiveEventModal from '@/components/Events/ArchiveEventModal';
 import SendEventButton from '@/components/Events/SendEventButton';
 
 type EventLayoutProps = {
@@ -10,7 +15,7 @@ type EventLayoutProps = {
   };
 };
 
-export default async function EventLayout({
+export default function EventLayout({
   children,
   params: { environmentSlug: envSlug, eventName: eventSlug },
 }: EventLayoutProps) {
@@ -18,6 +23,7 @@ export default async function EventLayout({
   const logsPath = `/env/${envSlug}/events/${eventSlug}/logs`;
   const eventPath = `/env/${envSlug}/events/${eventSlug}`;
   const eventName = decodeURIComponent(eventSlug);
+  const [showArchive, setShowArchive] = useState(false);
 
   return (
     <>
@@ -37,7 +43,20 @@ export default async function EventLayout({
             children: 'Logs',
           },
         ]}
-        action={<SendEventButton eventName={eventName} newIANav={true} />}
+        action={
+          <div className="flex flex-row items-center justify-end gap-x-1">
+            <ActionsMenu archive={() => setShowArchive(true)} />
+            <SendEventButton eventName={eventName} newIANav={true} />
+          </div>
+        }
+      />
+
+      <ArchiveEventModal
+        eventName={eventName}
+        isOpen={showArchive}
+        onClose={() => {
+          setShowArchive(false);
+        }}
       />
 
       {children}
