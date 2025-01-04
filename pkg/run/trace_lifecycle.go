@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/inngest/inngest/pkg/consts"
 	"github.com/inngest/inngest/pkg/enums"
 	"github.com/inngest/inngest/pkg/event"
@@ -709,6 +711,8 @@ func (l traceLifecycle) OnStepFinished(
 	resp *statev1.DriverResponse,
 	runErr error,
 ) {
+	spew.Dump("HIT OnStepFinished", string(debug.Stack()))
+
 	// reassign here to make sure we have the right traceID and such
 	ctx = l.extractTraceCtx(ctx, md, false)
 
@@ -769,7 +773,7 @@ func (l traceLifecycle) OnStepFinished(
 
 	if runErr != nil {
 		span.SetStatus(codes.Error, runErr.Error())
-		span.SetStepOutput(runErr.Error())
+		span.SetStepOutput(runErr)
 		return
 	}
 

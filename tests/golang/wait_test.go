@@ -317,7 +317,7 @@ func TestWaitInvalidExpression(t *testing.T) {
 				step.WaitForEventOpts{
 					If:      inngestgo.StrPtr("invalid"),
 					Name:    "dummy",
-					Timeout: time.Second,
+					Timeout: 30 * time.Second,
 				},
 			)
 
@@ -331,7 +331,7 @@ func TestWaitInvalidExpression(t *testing.T) {
 	// Trigger the main function and successfully invoke the other function
 	_, err := inngestgo.Send(ctx, &event.Event{Name: evtName})
 	r.NoError(err)
-	c.WaitForRunStatus(ctx, t, "COMPLETED", &runID)
+	c.WaitForRunStatus(ctx, t, "FAILED", &runID)
 }
 
 func TestWaitInvalidExpressionSyntaxError(t *testing.T) {
@@ -360,7 +360,7 @@ func TestWaitInvalidExpressionSyntaxError(t *testing.T) {
 				step.WaitForEventOpts{
 					If:      inngestgo.StrPtr("event.data.userId === async.data.userId"),
 					Name:    "test/continue",
-					Timeout: time.Second,
+					Timeout: 30 * time.Second,
 				},
 			)
 
@@ -375,7 +375,10 @@ func TestWaitInvalidExpressionSyntaxError(t *testing.T) {
 	_, err := inngestgo.Send(ctx, &event.Event{Name: evtName})
 	r.NoError(err)
 	run := c.WaitForRunStatus(ctx, t, "FAILED", &runID)
-	assert.Equal(t, "{\"error\":{\"error\":\"CompileError: Could not compile expression\",\"name\":\"CompileError\",\"message\":\"Could not compile expression\",\"stack\":\"ERROR: \\u003cinput\\u003e:1:21: Syntax error: token recognition error at: '= '\\n | event.data.userId === async.data.userId\\n | ....................^\"}}", run.Output)
+	assert.Equal(t,
+		`{"error":{"error":"InvalidExpression: Wait for event expression is invalid","name":"InvalidExpression","message":"Wait for event expression is invalid","stack":"error validating expression: error compiling expression: ERROR: \u003cinput\u003e:1:21: Syntax error: token recognition error at: '= '\n | event.data.userId === async.data.userId\n | ....................^"}}`,
+		run.Output,
+	)
 }
 
 func TestManyWaitInvalidExpressions(t *testing.T) {

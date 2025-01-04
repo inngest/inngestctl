@@ -285,6 +285,17 @@ func (r *DriverResponse) UpdateOpcodeError(op *GeneratorOpcode, err UserError) {
 	}
 }
 
+// IsFunctionResult returns true if the response is a function result. It will
+// return false if it's a step result.
+func (r *DriverResponse) IsFunctionResult() bool {
+	for _, op := range r.Generator {
+		if op.Op != enums.OpcodeNone {
+			return false
+		}
+	}
+	return true
+}
+
 type WrappedStandardError struct {
 	err error
 
