@@ -329,6 +329,9 @@ type StandardError struct {
 	Name    string `json:"name"`
 	Message string `json:"message"`
 	Stack   string `json:"stack,omitempty"`
+
+	// Cause allows nested errors to be passed back to the SDK.
+	Cause *StandardError `json:"cause,omitempty"`
 }
 
 func (s StandardError) String() string {
@@ -400,6 +403,12 @@ func (r *DriverResponse) StandardError() StandardError {
 				case "stack":
 					ret.Stack = val
 				}
+			}
+		}
+
+		if cause, ok := processed["cause"].(map[string]any); ok {
+			if causeByt, err := json.Marshal(cause); err == nil {
+				_ = json.Unmarshal(causeByt, &ret.Cause)
 			}
 		}
 	}
