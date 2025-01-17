@@ -13,7 +13,7 @@ export function useSystemStatus() {
   const [status, setStatus] = useState<Status>({
     url: STATUS_PAGE_URL,
     description: 'Fetching status...',
-    indicator: 'none',
+    impact: 'none',
     indicatorColor: indicatorColor.none,
     updated_at: '',
   });

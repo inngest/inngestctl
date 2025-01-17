@@ -14,9 +14,9 @@ export default function IncidentBanner() {
   let message = 'We are experiencing some issues.';
   let severity: Severity = 'warning';
 
-  if (status.indicator !== 'none') {
+  if (status.impact !== 'none') {
     message = `${status.description} -`;
-    if (status.indicator === 'minor') {
+    if (status.impact === 'degraded_performance' || status.impact === 'maintenance') {
       severity = 'info';
     }
   }
