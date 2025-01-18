@@ -21,6 +21,8 @@ var (
 		80, 443,
 		// Rails, Express & N*xt routes
 		3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010,
+		// Astro
+		4321,
 		// Django
 		5000,
 		// Vite/SvelteKit
