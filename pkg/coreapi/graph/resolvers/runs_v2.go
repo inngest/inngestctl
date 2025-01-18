@@ -11,7 +11,7 @@ import (
 	"github.com/inngest/inngest/pkg/coreapi/graph/models"
 	"github.com/inngest/inngest/pkg/cqrs"
 	"github.com/inngest/inngest/pkg/enums"
-	"github.com/inngest/inngest/pkg/inngest/log"
+	"github.com/inngest/inngest/pkg/util"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -242,18 +242,15 @@ func (r *queryResolver) RunTraceSpanOutputByID(ctx context.Context, outputID str
 
 	resp := models.RunTraceSpanOutput{}
 	if spanData.IsError {
-		var stepErr models.StepError
-		err := json.Unmarshal(spanData.Data, &stepErr)
+		stepErr, err := models.UnmarshalStepError(spanData.Data)
 		if err != nil {
-			log.From(ctx).Error().Err(err).Msg("error deserializing step error")
+			stepErr = &models.StepError{
+				Name:  util.ToPtr("Error"),
+				Stack: util.ToPtr(string(spanData.Data)),
+			}
 		}
 
-		if stepErr.Message == "" {
-			stack := string(spanData.Data)
-			stepErr.Stack = &stack
-		}
-
-		resp.Error = &stepErr
+		resp.Error = stepErr
 	} else {
 		d := string(spanData.Data)
 		resp.Data = &d

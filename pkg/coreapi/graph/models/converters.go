@@ -2,7 +2,10 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"github.com/inngest/inngest/pkg/cqrs"
 	"github.com/inngest/inngest/pkg/enums"
@@ -96,4 +99,43 @@ func ToFunctionRunStatus(s enums.RunStatus) (FunctionRunStatus, error) {
 	default:
 		return FunctionRunStatusRunning, fmt.Errorf("unknown run status: %d", s)
 	}
+}
+
+func UnmarshalStepError(data []byte) (*StepError, error) {
+	var rawData map[string]any
+	err := json.Unmarshal(data, &rawData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
+	}
+
+	// Use reflection to find the struct fields.
+	allowedFields := make(map[string]bool)
+	t := reflect.TypeOf(StepError{})
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		tag := field.Tag.Get("json")
+		if tag == "" {
+			continue
+		}
+
+		// Handle cases like `json:"name,omitempty"`.
+		name := strings.Split(tag, ",")[0]
+		allowedFields[name] = true
+	}
+
+	// Error if there are any extra fields.
+	for key := range rawData {
+		if !allowedFields[key] {
+			return nil, fmt.Errorf("unexpected field in JSON: %s", key)
+		}
+	}
+
+	// Unmarshal into StepError struct
+	var stepError StepError
+	err = json.Unmarshal(data, &stepError)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal into StepError: %w", err)
+	}
+
+	return &stepError, nil
 }

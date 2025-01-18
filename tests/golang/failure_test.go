@@ -2,13 +2,20 @@ package golang
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"net/url"
+	"os"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/inngest/inngest/pkg/consts"
 	"github.com/inngest/inngest/pkg/coreapi/graph/models"
+	"github.com/inngest/inngest/pkg/util"
 	"github.com/inngest/inngest/tests/client"
 	"github.com/inngest/inngestgo"
 	"github.com/stretchr/testify/assert"
@@ -224,4 +231,139 @@ func TestFunctionFailureWithRetries(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestNonSDKJSON(t *testing.T) {
+	startApp := func(
+		proxyURL *url.URL,
+		appName string,
+		eventName string,
+	) (*HTTPServer, func() error) {
+		inngestgo.DefaultClient = inngestgo.NewClient(
+			inngestgo.ClientOpts{EventKey: util.ToPtr("test")},
+		)
+		opts := inngestgo.HandlerOpts{
+			Logger:      slog.Default(),
+			RegisterURL: inngestgo.StrPtr(fmt.Sprintf("%s/fn/register", DEV_URL)),
+			URL:         proxyURL,
+		}
+		h := inngestgo.NewHandler(appName, opts)
+		fn := inngestgo.CreateFunction(
+			inngestgo.FunctionOpts{
+				Name:    "my-fn",
+				Retries: inngestgo.IntPtr(0),
+			},
+			inngestgo.EventTrigger(eventName, nil),
+			func(ctx context.Context, input inngestgo.Input[any]) (any, error) {
+				return nil, nil
+			},
+		)
+		h.Register(fn)
+		server := NewHTTPServer(h)
+
+		sync := func() error {
+			req, err := http.NewRequest(http.MethodPut, server.LocalURL(), nil)
+			if err != nil {
+				return err
+			}
+
+			timeout := time.Now().Add(5 * time.Second)
+			for {
+				resp, err := http.DefaultClient.Do(req)
+				if err == nil && resp.StatusCode == http.StatusOK {
+					return nil
+				}
+				if time.Now().After(timeout) {
+					return fmt.Errorf("timeout waiting for sync")
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+
+		return server, sync
+	}
+
+	t.Run("non-sdk json", func(t *testing.T) {
+		_ = os.Setenv("INNGEST_DEV", DEV_URL)
+		r := require.New(t)
+		ctx := context.Background()
+		c := client.New(t)
+
+		// Start proxy which returns a non-SDK JSON response.
+		errResp := map[string]any{
+			"Reason":  "ConcurrentInvocationLimitExceeded",
+			"Type":    "User",
+			"message": "Rate Exceeded.",
+		}
+		proxy := NewHTTPServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusTooManyRequests)
+			byt, _ := json.Marshal(errResp)
+			_, _ = w.Write(byt)
+		}))
+		defer proxy.Close()
+		proxyURL, err := url.Parse(proxy.URL())
+		r.NoError(err)
+
+		// Random to avoid collisions with other tests.
+		appName := uuid.New().String()
+		eventName := uuid.New().String()
+
+		// Start app.
+		server, sync := startApp(proxyURL, appName, eventName)
+		defer server.Close()
+		r.NoError(sync())
+
+		// Send event and get run ID.
+		eventID, err := inngestgo.Send(
+			ctx,
+			inngestgo.Event{Data: map[string]any{"foo": 1}, Name: eventName},
+		)
+		r.NoError(err)
+		runID, err := waitForRunIDFromEventID(ctx, c, eventID)
+		r.NoError(err)
+
+		require.EventuallyWithT(t, func(t *assert.CollectT) {
+			a := assert.New(t)
+			a.NotEmpty(runID)
+
+			run, err := c.RunTraces(ctx, *runID)
+			if !a.NoError(err) {
+				return
+			}
+			a.Equal(run.Status, "FAILED")
+
+			output := c.RunSpanOutput(ctx, *run.Trace.OutputID)
+			a.Nil(output.Data)
+			if !a.NotNil(output.Error) {
+				return
+			}
+			a.Equal("Error", *output.Error.Name)
+			if !a.NotNil(output.Error.Stack) {
+				return
+			}
+			var stack map[string]any
+			err = json.Unmarshal([]byte(*output.Error.Stack), &stack)
+			a.NoError(err)
+			a.Equal(stack, errResp)
+		}, 10*time.Second, time.Second)
+	})
+}
+
+func waitForRunIDFromEventID(
+	ctx context.Context,
+	c *client.Client,
+	eventID string,
+) (*string, error) {
+	timeout := time.Now().Add(5 * time.Second)
+	for {
+		runs, err := c.RunsByEventID(ctx, eventID)
+		if err == nil && len(runs) == 1 {
+			return &runs[0].ID, nil
+		}
+
+		if time.Now().After(timeout) {
+			return nil, fmt.Errorf("timeout waiting for run")
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }
