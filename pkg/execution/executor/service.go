@@ -24,7 +24,9 @@ import (
 	"github.com/inngest/inngest/pkg/pubsub"
 	"github.com/inngest/inngest/pkg/run"
 	"github.com/inngest/inngest/pkg/service"
+	itrace "github.com/inngest/inngest/pkg/telemetry/trace"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -146,6 +148,9 @@ func (s *svc) getFinishHandler(ctx context.Context) (func(context.Context, sv2.I
 					return fmt.Errorf("error marshalling event: %w", err)
 				}
 
+				carrier := itrace.NewTraceCarrier()
+				itrace.UserTracer().Propagator().Inject(ctx, propagation.MapCarrier(carrier.Context))
+
 				err = pb.Publish(
 					ctx,
 					topicName,
@@ -153,6 +158,9 @@ func (s *svc) getFinishHandler(ctx context.Context) (func(context.Context, sv2.I
 						Name:      event.EventReceivedName,
 						Data:      string(byt),
 						Timestamp: trackedEvent.GetEvent().Time(),
+						Metadata: map[string]any{
+							consts.OtelPropagationKey: carrier,
+						},
 					},
 				)
 				if err != nil {
