@@ -105,6 +105,23 @@ type DriverResponse struct {
 	Header http.Header `json:"header,omitempty"`
 }
 
+// GeneratorWithoutNone returns the generator opcodes without any "none"
+// opcodes.
+// SDKs do not return these opcodes directly, but they are used internally.
+func (r *DriverResponse) GeneratorWithoutNone() []*GeneratorOpcode {
+	if r.Generator == nil {
+		return nil
+	}
+
+	var filtered []*GeneratorOpcode
+	for _, gen := range r.Generator {
+		if gen.Op != enums.OpcodeNone {
+			filtered = append(filtered, gen)
+		}
+	}
+	return filtered
+}
+
 // SetFinal indicates that this error is final, regardless of the status code
 // returned.  This is used to prevent retries when the max limit is reached.
 func (r *DriverResponse) SetFinal() {

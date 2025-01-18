@@ -794,7 +794,7 @@ func applyResponse(
 		return nil
 	}
 
-	if len(resp.Generator) > 0 {
+	if len(resp.GeneratorWithoutNone()) > 0 {
 		// If we're a generator, exit now to prevent attempting to parse
 		// generator response as an output; the generator response may be in
 		// relation to many parallel steps, not just the one we're currently
